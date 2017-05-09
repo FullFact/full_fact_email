@@ -1,11 +1,12 @@
+import os
 from imaplib import IMAP4_SSL
 import email
-from haystack import Meta, Haystack
 import re
 import email_haystack_config as config
 from xml.etree import ElementTree 
 import bs4 # Beautiful Soup
 from nltk.tokenize import sent_tokenize
+import argparse
 
 # TODO:  How to get only unread emails
 # (_, data) = CONN.search(None, ('UNSEEN'), '(SENTSINCE {0})'.format(date)), '(FROM {0})'.format("someone@yahoo.com".strip()))
@@ -44,9 +45,9 @@ def make_filename(message_id):
     return config.save_file.format(msg_id)
 
 
-def write(msg):
+def write(msg, user):
     attributes = {
-        "publication": config.user,
+        "publication": user,
         "pdate": email.utils.parsedate_to_datetime(msg['Date']).isoformat(),
         "author": msg['From'],
         # "authorname": None,
@@ -62,17 +63,79 @@ def write(msg):
     doc.write(make_filename(msg['Message-ID']), 'UTF-8')
     
 
-with IMAP4_SSL(host=config.host, port=config.port) as mbox:
-    mbox.login(config.user, config.password)
-    m = mbox.select()
-    result, data = mbox.search(None, 'ALL')
-    assert result == 'OK', result
+def mail_to_haystack(args):
+    with IMAP4_SSL(host=args.host, port=args.port) as mbox:
+        mbox.login(args.user, args.password)
+        m = mbox.select()
+        result, data = mbox.search(None, args.search)
+        assert result == 'OK', result
+    
+        for num in data[0].split():
+            kind, data = mbox.fetch(num, '(RFC822)')
+            assert kind == 'OK', kind
+            # print(data)
+            protocol, content = data[0]
+            msg = email.message_from_bytes(content)
+    
+            write(msg, args.user)
 
-    for num in data[0].split():
-        kind, data = mbox.fetch(num, '(RFC822)')
-        assert kind == 'OK', kind
-        # print(data)
-        protocol, content = data[0]
-        msg = email.message_from_bytes(content)
+            
+def command_line():
+    parser = argparse.ArgumentParser(
+        description="""
+        Read emails from an imap mailbox and convert them to haystack xml.
+        """
+    )
+    parser.add_argument(
+        '-s', '--search',
+        default='UNSEEN',
+        help= """
+        Selection criterion. Normally ALL or UNSEEN.
+        It accepts any IMAP search spec
+        See: https://tools.ietf.org/html/rfc3501#section-6.4.4'
+        """
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        action = 'store_true',
+    )
+    parser.add_argument(
+        '-p', '--password',
+        default = os.getenv('EMAIL_PASSWORD'),
+        help = """
+        Password for the email account
+        """
+    )
+    parser.add_argument(
+        '--user',
+        default = config.user,
+        help = """
+        The user name to login to the email accout (normally the email address)
+        Defaults to the config value
+        """
+    )
+    parser.add_argument(
+        '--port',
+        default = config.port,
+        help = """
+        The IMAP port number defaults to the config value
+        """
+    )
+    parser.add_argument(
+        '--host',
+        default = config.host,
+        help = """
+        The host server defaults to the config value
+        """
+    )
 
-        write(msg)
+    return parser.parse_args()
+
+            
+def main():
+    args = command_line()
+    mail_to_haystack(args)
+
+
+if __name__ == '__main__':
+    main()
