@@ -42,7 +42,7 @@ class Meta:
         ret.write('>\n')
         for sentence in self.s:
             ret.write('<s>' + sentence + '</s>\n')
-        ret.write("<meta/>\n")
+        ret.write("</meta>\n")
         return ret.getvalue()
 
 class Haystack:
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         "<s>\n"
         "there are 100 aliens on the moon\n"
         "<s>\n"
-        "<meta/>\n"
+        "</meta>\n"
         "</haystack>"
     ), repr(str(h))
 
