@@ -1,34 +1,104 @@
 import os
 from imaplib import IMAP4_SSL
 import email
-import re
 import email_haystack_config as config
 from xml.etree import ElementTree 
 import bs4 # Beautiful Soup
 from nltk.tokenize import sent_tokenize
 import argparse
+import subprocess
+
 
 # TODO:  How to get only unread emails
 # (_, data) = CONN.search(None, ('UNSEEN'), '(SENTSINCE {0})'.format(date)), '(FROM {0})'.format("someone@yahoo.com".strip()))
 # https://coderwall.com/p/gorteg/python-s-imaplib
 
-def gen_payload(msg):
+class Attachment:
+    """
+    Abstract base class for email attachments
+    """
+    def __init__(self, data, original_file_name):
+        self.data = data
+        self.original_file_name = original_file_name
+
+        
+    def save(self, base_file_name):
+        base, _ = os.path.splitext(base_file_name)
+        self.out_file_name = base + '.' + self.original_file_name
+        
+        with open(self.out_file_name, 'wb') as out_file:
+            out_file.write(self.data)
+
+    def get_text(self):
+        """
+        Sub classes implement this to convert their format into plain text.
+        
+        The return value is a str, i.e. utf8
+        """
+        pass
+
+
+class PdfAttachment(Attachment):
+    """
+    PDF email attachment
+    """
+    def get_text(self):
+        # This creates a file 
+        subprocess.run(
+            ['pdftotext', '-layout', self.out_file_name],
+            check = True,
+        )
+        name, ext = os.path.splitext(self.out_file_name)
+        text_file_name = name + '.txt'
+        with open(text_file_name, encoding='latin1') as text_file:
+            return text_file.read()
+
+
+def gen_payload(msg, message_file_name):
     """
     A generator for breaking the payload into sentence like text
     
     It silently discards anything which isn't HTML or text
+    message_file_name: Used as a basis for generating attachment file names
     """
     for part in msg.walk():
-        if part.get_content_type() == 'text/plain':
-            for line in re.split('\.|\n{2+}', part.get_payload()):
-                yield line
-        elif part.get_content_type() == 'text/html':
-            soup = bs4.BeautifulSoup(part.get_payload(), 'html.parser')
-            for chunk in soup.strings:
-                for line in sent_tokenize(chunk):
-                    yield line
+        try:
+            content_type = part.get_content_type()
+        
+            payload = part.get_payload(decode = True)
+            if  msg['Content-Transfer-Encoding'] == 'quoted-printable':
+                payload = payload.decode()
 
-                    
+            if content_type == 'text/plain':
+                # Using NLTK to determine sentences works better than splitting.
+                # For example splitting breaks up an URL.
+                payload = part.get_payload(decode = True).decode()
+                for line in sent_tokenize(payload):
+                    yield line
+            elif content_type == 'text/html':
+                payload = part.get_payload(decode = True).decode()
+                soup = bs4.BeautifulSoup(payload, 'html.parser')
+                for chunk in soup.strings:
+                    for line in sent_tokenize(chunk):
+                        yield line
+            elif content_type == 'application/pdf':
+                original_file_name = part.get_filename()
+                file_part = PdfAttachment(payload, original_file_name)
+                file_part.save(message_file_name)
+                text = file_part.get_text()
+                for line in sent_tokenize(text):
+                    yield line
+            else:
+                print('skipping', content_type)
+
+        except:
+            print(message_file_name)
+            print('from:', msg['From'])
+            print('Subject:', msg['Subject'])
+            raise
+
+
+
 def make_filename(message_id):
     """
     Convert a message ID into a filename based on the config
@@ -53,14 +123,17 @@ def write(msg, user):
         # "authorname": None,
         "url": msg['Message-ID'],
     }
+    
+    out_file_name = make_filename(msg['Message-ID'])
+
     hay = ElementTree.Element('haystack')
     meta = ElementTree.SubElement(hay, 'meta', attributes)
-    for s in gen_payload(msg):
+    for content in gen_payload(msg, out_file_name):
         s_element = ElementTree.SubElement(meta, 's')
-        s_element.text = s
+        s_element.text = content
 
     doc = ElementTree.ElementTree(hay)
-    doc.write(make_filename(msg['Message-ID']), 'UTF-8')
+    doc.write(out_file_name, 'UTF-8')
     
 
 def mail_to_haystack(args):
@@ -92,7 +165,7 @@ def command_line():
         help= """
         Selection criterion. Normally ALL or UNSEEN.
         It accepts any IMAP search spec
-        See: https://tools.ietf.org/html/rfc3501#section-6.4.4'
+        See: https://tools.ietf.org/html/rfc3501#section-6.4.4
         """
     )
     parser.add_argument(

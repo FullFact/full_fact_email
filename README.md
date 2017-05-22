@@ -21,7 +21,7 @@ optional arguments:
   -s SEARCH, --search SEARCH
                         Selection criterion. Normally ALL or UNSEEN. It
                         accepts any IMAP search spec See:
-                        https://tools.ietf.org/html/rfc3501#section-6.4.4'
+                        https://tools.ietf.org/html/rfc3501#section-6.4.4
   -v, --verbose
   -p PASSWORD, --password PASSWORD
                         Password for the email account
@@ -41,5 +41,4 @@ The config file email_haystack_config.py includes email account details and a pa
 
 PDF processing relies on the free utlilty **pdftotext**. This is normally available on linux stystems. On Windows, it installs as part of the default git installation.
 
-
-
+Emails often repeat the same information more than once, for exampmple as formatted text with a plain text alternative. The output will include all copies. The sentence recognition code will not always make the same decisions on where to split them.
