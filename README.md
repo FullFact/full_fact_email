@@ -10,24 +10,26 @@ It runs as a stand-alone program or as a Python function.
 
 It reads message text (plain text and HTML) and pdf attachments. It ignores anything else. For example word documents or images of scanned text are not processed.
 
-> usage: email_haystack.py [-h] [-s SEARCH] [-v] [-p PASSWORD] [--user USER]
->                          [--port PORT] [--host HOST]
-> 
-> Read emails from an imap mailbox and convert them to haystack xml.
-> 
-> optional arguments:
->   -h, --help            show this help message and exit
->   -s SEARCH, --search SEARCH
->                         Selection criterion. Normally ALL or UNSEEN. It
->                         accepts any IMAP search spec See:
->                         https://tools.ietf.org/html/rfc3501#section-6.4.4'
->   -v, --verbose
->   -p PASSWORD, --password PASSWORD
->                         Password for the email account
->   --user USER           The user name to login to the email accout (normally
->                         the email address) Defaults to the config value
->   --port PORT           The IMAP port number defaults to the config value
->   --host HOST           The host server defaults to the config value
+usage: email_haystack.py [-h] [-s SEARCH] [-v] [-p PASSWORD] [--user USER]
+                         [--port PORT] [--host HOST]
+
+Read emails from an imap mailbox and convert them to haystack xml.
+
+```
+optional arguments:
+  -h, --help            show this help message and exit
+  -s SEARCH, --search SEARCH
+                        Selection criterion. Normally ALL or UNSEEN. It
+                        accepts any IMAP search spec See:
+                        https://tools.ietf.org/html/rfc3501#section-6.4.4'
+  -v, --verbose
+  -p PASSWORD, --password PASSWORD
+                        Password for the email account
+  --user USER           The user name to login to the email accout (normally
+                        the email address) Defaults to the config value
+  --port PORT           The IMAP port number defaults to the config value
+  --host HOST           The host server defaults to the config value
+```
 
 IMAP search specs are flexible: for exmaple you could get all email in a date range which you have replied to.
 
