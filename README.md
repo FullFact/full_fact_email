@@ -10,12 +10,12 @@ It runs as a stand-alone program or as a Python function.
 
 It reads message text (plain text and HTML) and pdf attachments. It ignores anything else. For example word documents or images of scanned text are not processed.
 
+```
 usage: email_haystack.py [-h] [-s SEARCH] [-v] [-p PASSWORD] [--user USER]
                          [--port PORT] [--host HOST]
 
 Read emails from an imap mailbox and convert them to haystack xml.
 
-```
 optional arguments:
   -h, --help            show this help message and exit
   -s SEARCH, --search SEARCH
