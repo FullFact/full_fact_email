@@ -11,4 +11,4 @@ user = 'full_fact@grazebrook.com'
 
 
 # {} is replaced with an unique ID
-save_file = './haysatck_email_{}.xml'
+save_file = './email_haystack/haysatck_email_{}.xml'
